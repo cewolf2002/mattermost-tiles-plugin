@@ -2,7 +2,7 @@
 
 在 Mattermost 頻道加入可自訂的 tile 連結選單，內容不限特定產品或用途。
 
-- 電腦版／網頁版：最右側 App Bar 的橘色燈泡圖示（App Bar 關閉時改在頻道上方）→ 右側 tile 面板（可篩選）
+- 電腦版／網頁版：最右側 App Bar 的燈泡圖示（預設橘色，可在設定換色；App Bar 關閉時改在頻道上方）→ 右側 tile 面板（可篩選）
 - 手機 app：把「快速查詢助手」的私訊加到「我的最愛」當固定入口，或在任何頻道輸入 `/tiles [關鍵字]`
 
 ## 下載與安裝
@@ -44,7 +44,10 @@
 
 ## System Console 設定
 
-外掛 → 快速查詢：斜線指令、說明文字、每人「我的捷徑」上限。
+外掛 → 快速查詢：斜線指令、說明文字、每人「我的捷徑」上限、右側圖示顏色。
+
+- **右側圖示顏色**：8 個預設色票，或按「自選」用調色盤挑、直接輸入 `#RRGGBB`；左邊預覽會用你自己的側邊欄顏色當底，
+  方便確認看不看得清楚。燈泡依底色深淺自動換白色或深色。存檔後同事開著的畫面會直接換色，不用重新整理。
 
 ## 結構
 
@@ -52,7 +55,7 @@
 |---|---|
 | `plugin.json` | 外掛 manifest 與 System Console 設定欄位 |
 | `server/` | Go：斜線指令、bot 私訊回覆、訊息按鈕與表單、面板用的 REST API（`/plugins/tw.com.cewolf.tiles/api/v1/...`）、KV 存取 |
-| `webapp/dist/main.js` | 右側面板，免編譯（直接使用 Mattermost 提供的 React） |
+| `webapp/dist/main.js` | 右側面板、App Bar 圖示、System Console 的顏色設定，免編譯（直接使用 Mattermost 提供的 React） |
 
 ## 重新編譯
 

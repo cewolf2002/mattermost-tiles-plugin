@@ -21,6 +21,10 @@ type viewResponse struct {
 	MaxPersonal int    `json:"max_personal"` // 0 代表「我的捷徑」已關閉
 }
 
+type settingsResponse struct {
+	IconColor string `json:"icon_color"`
+}
+
 type adminListResponse struct {
 	Tiles []adminTile `json:"tiles"`
 }
@@ -55,6 +59,7 @@ func (p *Plugin) ServeHTTP(_ *plugin.Context, w http.ResponseWriter, r *http.Req
 func (p *Plugin) newRouter() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/tiles", p.handleView)
+	mux.HandleFunc("GET /api/v1/settings", p.handleSettings)
 	mux.HandleFunc("GET /api/v1/admin/tiles", p.adminOnly(p.handleAdminList))
 	mux.HandleFunc("POST /api/v1/admin/tiles", p.adminOnly(p.handleAdminCreate))
 	mux.HandleFunc("PUT /api/v1/admin/tiles/{id}", p.adminOnly(p.handleAdminUpdate))
@@ -107,6 +112,12 @@ func (p *Plugin) handleView(w http.ResponseWriter, r *http.Request) {
 		Personal:    personal,
 		MaxPersonal: limit,
 	})
+}
+
+// handleSettings 給前端外觀用的設定；外掛設定只有系統管理員讀得到，一般同事要靠這支 API。
+func (p *Plugin) handleSettings(w http.ResponseWriter, _ *http.Request) {
+	cfg, _, _ := p.snapshot()
+	writeJSON(w, http.StatusOK, settingsResponse{IconColor: normalizeIconColor(cfg.AppBarIconColor)})
 }
 
 func (p *Plugin) handleAdminList(w http.ResponseWriter, _ *http.Request) {

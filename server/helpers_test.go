@@ -129,6 +129,7 @@ type testEnv struct {
 	api *plugintest.API
 	kv  *fakeKV
 	dir *fakeDir
+	cfg *configuration // 改完再呼叫 p.OnConfigurationChange()，模擬管理員在 System Console 存檔
 }
 
 // setup 建立已啟用的外掛；"admin" 是系統管理員，其他使用者都是一般同事。
@@ -136,8 +137,9 @@ func setup(t *testing.T, cfg configuration) *testEnv {
 	t.Helper()
 	api := &plugintest.API{}
 	api.On("EnsureBotUser", mock.Anything).Return("bot123", nil)
+	cur := &cfg
 	api.On("LoadPluginConfiguration", mock.Anything).Run(func(args mock.Arguments) {
-		*args.Get(0).(*configuration) = cfg
+		*args.Get(0).(*configuration) = *cur
 	}).Return(nil)
 	api.On("RegisterCommand", mock.MatchedBy(func(c *model.Command) bool {
 		return c.Trigger == normalizeTrigger(cfg.Trigger) && c.AutoComplete
@@ -155,7 +157,7 @@ func setup(t *testing.T, cfg configuration) *testEnv {
 	p.SetAPI(api)
 	require.NoError(t, p.OnConfigurationChange()) // 啟用前的這次呼叫不能註冊指令
 	require.NoError(t, p.OnActivate())
-	return &testEnv{p: p, api: api, kv: kv, dir: dir}
+	return &testEnv{p: p, api: api, kv: kv, dir: dir, cfg: cur}
 }
 
 func doRequest(t *testing.T, p *Plugin, userID, method, path string, body any) *httptest.ResponseRecorder {

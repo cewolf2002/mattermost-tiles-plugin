@@ -18,18 +18,51 @@
     ];
     var ICONS = ['📘', '❓', '📄', '🛠️', '📦', '💡', '📊', '🔗', '📞', '🗂️'];
 
-    // 右側 App Bar 的圖示：只用字型圖示的話會被套成側邊欄文字色＋64% 透明度，在彩色主題上幾乎看不見，
-    // 所以改成跟其他外掛一樣的實心圓底圖片；橘色在常見的藍、綠、深色側邊欄上都夠跳。
+    // 右側 App Bar 圖示的底色；DEFAULT_ICON_COLOR 要跟 plugin.json、server 的 defaultIconColor 一致
+    var DEFAULT_ICON_COLOR = '#E8590C';
+    var ICON_PRESETS = [
+        {value: '#E8590C', label: '橘（預設）'},
+        {value: '#1C58D9', label: '藍'},
+        {value: '#1D9E75', label: '綠'},
+        {value: '#7F56D9', label: '紫'},
+        {value: '#D24B4E', label: '紅'},
+        {value: '#F5B700', label: '黃'},
+        {value: '#3F4350', label: '深灰'},
+        {value: '#FFFFFF', label: '白'},
+    ];
+
+    function normalizeIconColor(s) {
+        s = (s || '').trim();
+        return /^#[0-9a-f]{6}$/i.test(s) ? s.toUpperCase() : DEFAULT_ICON_COLOR;
+    }
+
+    // 燈泡顏色依底色亮度切換。門檻刻意比「對比度較高者」偏向白色：
+    // 圖示是粗的實心形狀，白燈泡在橘、綠這類中間色上更像一般 App 圖示，只有明顯偏亮的底色才換深色
+    function iconGlyphColor(bg) {
+        var n = parseInt(bg.slice(1), 16);
+        var ch = [n >> 16, (n >> 8) & 255, n & 255].map(function (c) {
+            c /= 255;
+            return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        });
+        var luminance = 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+        return luminance > 0.35 ? '#1B1D22' : '#FFFFFF';
+    }
+
+    // 只用字型圖示的話，App Bar 會套成側邊欄文字色＋64% 透明度，在彩色主題上幾乎看不見，
+    // 所以跟其他外掛一樣給實心圓底圖片。
     // 用 data URI 而不是 public/ 下的檔案，免得站台掛在子路徑時網址組錯。
-    var APP_BAR_ICON = 'data:image/svg+xml,' + encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
-        '<circle cx="12" cy="12" r="12" fill="#E8590C"/>' +
-        '<g fill="#fff" transform="translate(0 -.8)">' +
-        '<path d="M12 5.5a4.5 4.5 0 0 0-2.6 8.17c.37.27.6.7.6 1.16V16h4v-1.17c0-.46.23-.89.6-1.16A4.5 4.5 0 0 0 12 5.5z"/>' +
-        '<rect x="10" y="17" width="4" height="1.4" rx=".7"/>' +
-        '<rect x="10.6" y="18.9" width="2.8" height="1.2" rx=".6"/>' +
-        '</g></svg>'
-    );
+    function appBarIcon(color) {
+        var bg = normalizeIconColor(color);
+        return 'data:image/svg+xml,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+            '<circle cx="12" cy="12" r="12" fill="' + bg + '"/>' +
+            '<g fill="' + iconGlyphColor(bg) + '" transform="translate(0 -.8)">' +
+            '<path d="M12 5.5a4.5 4.5 0 0 0-2.6 8.17c.37.27.6.7.6 1.16V16h4v-1.17c0-.46.23-.89.6-1.16A4.5 4.5 0 0 0 12 5.5z"/>' +
+            '<rect x="10" y="17" width="4" height="1.4" rx=".7"/>' +
+            '<rect x="10.6" y="18.9" width="2.8" height="1.2" rx=".6"/>' +
+            '</g></svg>'
+        );
+    }
 
     // 表單上會顯示錯誤的欄位；伺服器回的錯誤不屬於這些欄位時，改顯示在表單底部
     var FORM_FIELDS = ['title', 'url', 'description', 'icon', 'color', 'channels'];
@@ -122,6 +155,20 @@
         'border-radius:8px;border:1px dashed rgba(var(--center-channel-color-rgb),.32);background:transparent;',
         'color:rgba(var(--center-channel-color-rgb),.64);font-size:13px;cursor:pointer;}',
         '.cewolf-tiles__add:hover{border-color:var(--button-bg);color:var(--button-bg);}',
+        '.cewolf-tiles-color{display:flex;flex-wrap:wrap;align-items:center;gap:12px;}',
+        '.cewolf-tiles-color .cewolf-tiles__picks{margin-top:0;}',
+        '.cewolf-tiles-color__preview{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;',
+        'background:var(--sidebar-bg);}',
+        '.cewolf-tiles-color__custom{display:inline-flex;align-items:center;gap:6px;margin:0;padding:2px 10px 2px 2px;border-radius:16px;',
+        'font-size:13px;font-weight:normal;cursor:pointer;box-shadow:0 0 0 1px rgba(var(--center-channel-color-rgb),.16);}',
+        '.cewolf-tiles-color__custom--on{box-shadow:0 0 0 2px var(--button-bg);}',
+        '.cewolf-tiles-color__custom input{width:26px;height:26px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;}',
+        '.cewolf-tiles-color__custom input::-webkit-color-swatch-wrapper{padding:0;}',
+        '.cewolf-tiles-color__custom input::-webkit-color-swatch{border:0;border-radius:50%;}',
+        '.cewolf-tiles-color__custom input::-moz-color-swatch{border:0;border-radius:50%;}',
+        '.cewolf-tiles-color__hex{width:96px;font-family:monospace;text-transform:uppercase;}',
+        '.cewolf-tiles-color__hex--bad,.cewolf-tiles-color__hex--bad:focus{border-color:var(--error-text,#d24b4e);',
+        'box-shadow:inset 0 0 0 1px var(--error-text,#d24b4e);}',
     ].join('');
 
     function injectStyles() {
@@ -846,24 +893,154 @@
                 }, pinResult.text) : null));
     }
 
+    var pluginStore = null;
+
+    // System Console 會把整頁換成固定的主控台配色，CSS 變數已不是使用者平常的側邊欄顏色，
+    // 預覽要看得出跟實際側邊欄的對比，所以直接讀佈景主題偏好（依團隊分開設定時優先用目前團隊的）
+    function userSidebarBg() {
+        try {
+            var state = pluginStore.getState();
+            var prefs = state.entities.preferences.myPreferences;
+            var pref = prefs['theme--' + state.entities.teams.currentTeamId] || prefs['theme--'];
+            var bg = JSON.parse(pref.value).sidebarBg;
+            return /^#[0-9a-f]{6}$/i.test(bg) ? bg : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // System Console 的「右側圖示顏色」：預設色票＋自選（調色盤或直接輸入色碼），左邊用使用者的側邊欄顏色即時預覽
+    function IconColorSetting(props) {
+        var value = normalizeIconColor(props.value);
+        var textState = React.useState(value);
+        var text = textState[0];
+        var setText = textState[1];
+        React.useEffect(function () {
+            setText(value);
+        }, [value]);
+
+        function choose(c) {
+            props.onChange(props.id, normalizeIconColor(c));
+        }
+
+        var isPreset = ICON_PRESETS.some(function (c) {
+            return c.value === value;
+        });
+        var textValid = /^#[0-9a-f]{6}$/i.test(text.trim());
+
+        return h('div', {className: 'cewolf-tiles-color'},
+            h('div', {
+                className: 'cewolf-tiles-color__preview',
+                title: '預覽（底色是你目前佈景主題的側邊欄顏色）',
+                // 沒設過佈景主題的人用的是預設主題，跟主控台配色一樣，退回 CSS 變數即可
+                style: {background: userSidebarBg() || 'var(--sidebar-bg)'},
+            },
+                h('img', {src: appBarIcon(value), alt: '圖示預覽', width: 24, height: 24})),
+            h('div', {className: 'cewolf-tiles__picks', role: 'radiogroup', 'aria-label': '預設顏色'}, ICON_PRESETS.map(function (c) {
+                var on = value === c.value;
+                return h('button', {
+                    key: c.value,
+                    type: 'button',
+                    role: 'radio',
+                    'aria-checked': on,
+                    'aria-label': c.label,
+                    title: c.label,
+                    disabled: props.disabled,
+                    className: 'cewolf-tiles__swatch' + (on ? ' cewolf-tiles__swatch--on' : ''),
+                    style: {background: c.value},
+                    onClick: function () {
+                        choose(c.value);
+                    },
+                });
+            })),
+            h('label', {
+                className: 'cewolf-tiles-color__custom' + (isPreset ? '' : ' cewolf-tiles-color__custom--on'),
+                title: '用調色盤挑顏色',
+            },
+            h('input', {
+                type: 'color',
+                value: value.toLowerCase(),
+                disabled: props.disabled,
+                onChange: function (ev) {
+                    choose(ev.target.value);
+                },
+            }),
+            '自選'),
+            h('input', {
+                className: 'cewolf-tiles__input cewolf-tiles-color__hex' + (textValid ? '' : ' cewolf-tiles-color__hex--bad'),
+                type: 'text',
+                value: text,
+                maxLength: 7,
+                placeholder: '#RRGGBB',
+                spellCheck: false,
+                disabled: props.disabled,
+                'aria-label': '色碼（#RRGGBB）',
+                onChange: function (ev) {
+                    setText(ev.target.value);
+                    if (/^#[0-9a-f]{6}$/i.test(ev.target.value.trim())) {
+                        choose(ev.target.value);
+                    }
+                },
+                // 打到一半就離開，恢復成目前生效的顏色，免得畫面跟實際存的值不一致
+                onBlur: function () {
+                    setText(value);
+                },
+            }));
+    }
+
     function Plugin() {}
 
     Plugin.prototype.initialize = function (registry, store) {
+        pluginStore = store;
         injectStyles();
         // 用位置參數呼叫，新舊版 Mattermost 都相容
         var rhs = registry.registerRightHandSidebarComponent(TilesPanel, '快速查詢');
         var toggle = function () {
             store.dispatch(rhs.toggleRHSPlugin);
         };
-        // 兩個都註冊：有 App Bar 時 Mattermost 會自動藏掉頻道上方的按鈕、只顯示 App Bar 圖示；
-        // 系統管理員關掉 App Bar（DisableAppBar）時，才退回頻道上方的燈泡按鈕
-        registry.registerAppBarComponent(APP_BAR_ICON, toggle, '快速查詢');
-        registry.registerChannelHeaderButtonAction(
-            h('i', {className: 'icon icon-lightbulb-outline', style: {fontSize: '18px'}}),
-            toggle,
-            '快速查詢',
-            '快速查詢'
-        );
+        registry.registerAdminConsoleCustomSetting('appbariconcolor', IconColorSetting, {showTitle: true});
+
+        // App Bar 圖示沒辦法改圖，換色只能先移除再重新註冊
+        var appBarId = null;
+        var shownColor = null;
+        var showAppBarIcon = function (color) {
+            color = normalizeIconColor(color);
+            if (color === shownColor) {
+                return;
+            }
+            var first = appBarId === null;
+            if (!first) {
+                registry.unregisterComponent(appBarId);
+            }
+            shownColor = color;
+            appBarId = registry.registerAppBarComponent(appBarIcon(color), toggle, '快速查詢');
+
+            // 兩個都註冊：有 App Bar 時 Mattermost 會自動藏掉頻道上方的按鈕、只顯示 App Bar 圖示；
+            // 系統管理員關掉 App Bar（DisableAppBar）時，才退回頻道上方的燈泡按鈕。
+            // 等 App Bar 圖示註冊後才註冊，不然讀設定的空檔會先在 App Bar 閃一下原本很淡的燈泡
+            if (first) {
+                registry.registerChannelHeaderButtonAction(
+                    h('i', {className: 'icon icon-lightbulb-outline', style: {fontSize: '18px'}}),
+                    toggle,
+                    '快速查詢',
+                    '快速查詢'
+                );
+            }
+        };
+        var loadIconColor = function () {
+            return request('GET', '/settings').then(function (data) {
+                showAppBarIcon(data.icon_color);
+            }, function () {
+                // 讀不到設定（例如伺服器端還在啟動）先用預設色，至少讓入口出現
+                showAppBarIcon(shownColor || DEFAULT_ICON_COLOR);
+            });
+        };
+        loadIconColor();
+        // 管理員在 System Console 存檔時，伺服器會推播新顏色；斷線期間錯過的話，重新連線時再讀一次
+        registry.registerWebSocketEventHandler('custom_' + PLUGIN_ID + '_icon_color', function (msg) {
+            showAppBarIcon(msg && msg.data && msg.data.color);
+        });
+        registry.registerReconnectHandler(loadIconColor);
     };
 
     window.registerPlugin(PLUGIN_ID, new Plugin());

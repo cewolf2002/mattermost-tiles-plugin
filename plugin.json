@@ -4,7 +4,7 @@
   "description": "在頻道右側顯示可自訂的 tile 連結選單，並提供斜線指令（手機可用）。",
   "homepage_url": "https://github.com/cewolf2002/mattermost-tiles-plugin",
   "support_url": "https://github.com/cewolf2002/mattermost-tiles-plugin/issues",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "min_server_version": "10.0.0",
   "server": {
     "executables": {
@@ -38,6 +38,13 @@
         "type": "number",
         "default": 2,
         "help_text": "每位同事可以自己新增、只有自己看得到的捷徑數量（最多 20）。設 0 關閉這個功能；調低上限不會刪掉已經存在的捷徑。"
+      },
+      {
+        "key": "AppBarIconColor",
+        "display_name": "右側圖示顏色",
+        "type": "custom",
+        "default": "#E8590C",
+        "help_text": "最右側 App Bar 上「快速查詢」圖示的底色，點選預設顏色或按「自選」挑任何顏色。燈泡會依底色深淺自動變成白色或深色；存檔後同事開著的畫面會直接換色，不用重新整理。"
       }
     ]
   }
