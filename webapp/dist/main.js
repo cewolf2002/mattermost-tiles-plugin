@@ -18,6 +18,19 @@
     ];
     var ICONS = ['📘', '❓', '📄', '🛠️', '📦', '💡', '📊', '🔗', '📞', '🗂️'];
 
+    // 右側 App Bar 的圖示：只用字型圖示的話會被套成側邊欄文字色＋64% 透明度，在彩色主題上幾乎看不見，
+    // 所以改成跟其他外掛一樣的實心圓底圖片；橘色在常見的藍、綠、深色側邊欄上都夠跳。
+    // 用 data URI 而不是 public/ 下的檔案，免得站台掛在子路徑時網址組錯。
+    var APP_BAR_ICON = 'data:image/svg+xml,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+        '<circle cx="12" cy="12" r="12" fill="#E8590C"/>' +
+        '<g fill="#fff" transform="translate(0 -.8)">' +
+        '<path d="M12 5.5a4.5 4.5 0 0 0-2.6 8.17c.37.27.6.7.6 1.16V16h4v-1.17c0-.46.23-.89.6-1.16A4.5 4.5 0 0 0 12 5.5z"/>' +
+        '<rect x="10" y="17" width="4" height="1.4" rx=".7"/>' +
+        '<rect x="10.6" y="18.9" width="2.8" height="1.2" rx=".6"/>' +
+        '</g></svg>'
+    );
+
     // 表單上會顯示錯誤的欄位；伺服器回的錯誤不屬於這些欄位時，改顯示在表單底部
     var FORM_FIELDS = ['title', 'url', 'description', 'icon', 'color', 'channels'];
 
@@ -839,11 +852,15 @@
         injectStyles();
         // 用位置參數呼叫，新舊版 Mattermost 都相容
         var rhs = registry.registerRightHandSidebarComponent(TilesPanel, '快速查詢');
+        var toggle = function () {
+            store.dispatch(rhs.toggleRHSPlugin);
+        };
+        // 兩個都註冊：有 App Bar 時 Mattermost 會自動藏掉頻道上方的按鈕、只顯示 App Bar 圖示；
+        // 系統管理員關掉 App Bar（DisableAppBar）時，才退回頻道上方的燈泡按鈕
+        registry.registerAppBarComponent(APP_BAR_ICON, toggle, '快速查詢');
         registry.registerChannelHeaderButtonAction(
             h('i', {className: 'icon icon-lightbulb-outline', style: {fontSize: '18px'}}),
-            function () {
-                store.dispatch(rhs.toggleRHSPlugin);
-            },
+            toggle,
             '快速查詢',
             '快速查詢'
         );
