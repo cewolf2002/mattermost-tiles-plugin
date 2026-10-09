@@ -1,0 +1,5 @@
+# 編譯產物：server 執行檔與打包後的 tar.gz 由 README 的指令產生，不進版控
+server/dist/
+pkg/
+*.tar.gz
+.DS_Store

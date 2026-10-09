@@ -1,0 +1,44 @@
+{
+  "id": "tw.com.cewolf.tiles",
+  "name": "快速查詢",
+  "description": "在頻道右側顯示可自訂的 tile 連結選單，並提供斜線指令（手機可用）。",
+  "homepage_url": "https://github.com/cewolf2002/mattermost-tiles-plugin",
+  "support_url": "https://github.com/cewolf2002/mattermost-tiles-plugin/issues",
+  "version": "2.0.0",
+  "min_server_version": "10.0.0",
+  "server": {
+    "executables": {
+      "linux-amd64": "server/dist/plugin-linux-amd64",
+      "linux-arm64": "server/dist/plugin-linux-arm64"
+    }
+  },
+  "webapp": {
+    "bundle_path": "webapp/dist/main.js"
+  },
+  "settings_schema": {
+    "header": "共用 tile 請在頻道右側的「快速查詢」面板管理：系統管理員會看到鉛筆按鈕，可以直接新增、編輯、排序與刪除。",
+    "settings": [
+      {
+        "key": "Trigger",
+        "display_name": "斜線指令",
+        "type": "text",
+        "default": "tiles",
+        "help_text": "同事輸入的指令，不含斜線。若已建立同名的自訂斜線指令，請先刪除，避免衝突。"
+      },
+      {
+        "key": "IntroText",
+        "display_name": "說明文字",
+        "type": "text",
+        "default": "#### 快速查詢\n點選項目開啟對應的連結，找不到答案再到頻道發問。",
+        "help_text": "顯示在選單最上方。"
+      },
+      {
+        "key": "MaxPersonalTiles",
+        "display_name": "每人「我的捷徑」上限",
+        "type": "number",
+        "default": 2,
+        "help_text": "每位同事可以自己新增、只有自己看得到的捷徑數量（最多 20）。設 0 關閉這個功能；調低上限不會刪掉已經存在的捷徑。"
+      }
+    ]
+  }
+}
