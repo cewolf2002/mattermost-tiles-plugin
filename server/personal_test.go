@@ -96,13 +96,13 @@ func TestCommandIncludesPersonalTiles(t *testing.T) {
 
 	_, appErr := e.p.ExecuteCommand(nil, &model.CommandArgs{UserId: "alice", ChannelId: "c1", Command: "/tiles"})
 	require.Nil(t, appErr)
-	atts := tileAttachments(sent)
-	require.Len(t, atts, 2)
-	require.Equal(t, "我的報表", atts[1].Title)
-	require.Contains(t, atts[1].Footer, "我的捷徑")
-	require.Empty(t, atts[0].Footer)
+	require.Equal(t, []string{"公告", "我的報表"}, openButtonNames(sent))
+	atts := sent.Attachments()
+	require.Empty(t, atts[0].Footer, "共用項目那組按鈕")
+	require.Contains(t, atts[1].Footer, "我的捷徑", "個人捷徑那組按鈕要註明只有自己看得到")
+	require.Equal(t, scopePersonal, atts[1].Actions[0].Integration.Context["scope"])
 
 	_, appErr = e.p.ExecuteCommand(nil, &model.CommandArgs{UserId: "alice", ChannelId: "c1", Command: "/tiles 業績"})
 	require.Nil(t, appErr)
-	require.Len(t, tileAttachments(sent), 1, "關鍵字也比對個人捷徑")
+	require.Equal(t, []string{"我的報表"}, openButtonNames(sent), "關鍵字也比對個人捷徑的說明")
 }

@@ -51,8 +51,11 @@ func (p *Plugin) buildMenu(userID, query string, cfg configuration, trigger stri
 		text += "\n\n找不到符合「" + query + "」的項目，輸入 `/" + trigger + "` 看全部。"
 	}
 
-	atts := buildAttachments(matched)
-	for _, a := range buildAttachments(matchedPersonal) {
+	var atts []*model.SlackAttachment
+	if a := tileButtons(matched, scopeShared); a != nil {
+		atts = append(atts, a)
+	}
+	if a := tileButtons(matchedPersonal, scopePersonal); a != nil {
 		a.Footer = "我的捷徑（只有你看得到）"
 		atts = append(atts, a)
 	}

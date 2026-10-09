@@ -21,6 +21,8 @@
 - **固定入口**：在面板底部或 `/tiles` 回覆按「📌 加到我的最愛」，跟「快速查詢助手」的私訊會出現在側邊欄的
   「我的最愛」（側邊欄分類存在伺服器上，手機會同步）。在私訊裡直接打關鍵字就回覆符合的 tile，輸入「全部」看完整選單。
 - **斜線指令**：任何頻道輸入 `/tiles [關鍵字]`，回覆只有自己看得到（指令名稱可在設定改）。
+- **每個 tile 是一顆按鈕**：Mattermost 的訊息按鈕只能回呼外掛、不能直接開網址，所以按下後 bot 會回一則
+  只有自己看得到的連結（標題大小，好點），再點一下開啟。
 - **我的捷徑**：回覆底下的「＋ 新增我的捷徑」「管理我的捷徑」會跳出表單，手機上也能新增、編輯、刪除。
 - 不能像 Agents 那樣在側邊欄加專屬入口：那是官方直接寫進手機 app 的功能，外掛沒有對應的擴充點。
 
@@ -67,7 +69,7 @@ done
 go test ./...
 cd .. && mkdir -p pkg/tw.com.cewolf.tiles && \
   cp -r plugin.json server webapp pkg/tw.com.cewolf.tiles/ && \
-  COPYFILE_DISABLE=1 tar -czf tw.com.cewolf.tiles-2.0.0.tar.gz -C pkg tw.com.cewolf.tiles
+  COPYFILE_DISABLE=1 tar -czf tw.com.cewolf.tiles-2.1.0.tar.gz -C pkg tw.com.cewolf.tiles
 ```
 
 在 macOS 手動打包一定要加 `COPYFILE_DISABLE=1`：macOS 的 tar 會把檔案的延伸屬性另存成 `._*` 項目塞進壓縮檔，

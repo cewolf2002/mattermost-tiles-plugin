@@ -190,7 +190,7 @@ func titles(tiles []Tile) []string {
 	return out
 }
 
-// tileAttachments 只取選單裡代表 tile 的附件（有標題的），略過最後那列按鈕。
+// tileAttachments 取有標題的附件（管理我的捷徑清單用的是附件，不是按鈕）。
 func tileAttachments(post *model.Post) []*model.SlackAttachment {
 	var out []*model.SlackAttachment
 	for _, a := range post.Attachments() {
@@ -201,13 +201,40 @@ func tileAttachments(post *model.Post) []*model.SlackAttachment {
 	return out
 }
 
-// buttonNames 回傳訊息上所有按鈕的文字，依出現順序。
+func isOpenAction(act *model.PostAction) bool {
+	return act.Integration != nil && act.Integration.Context["action"] == "open"
+}
+
+// buttonNames 回傳 tile 以外的按鈕（新增、管理、加到我的最愛、編輯、刪除）文字，依出現順序。
 func buttonNames(post *model.Post) []string {
 	var out []string
 	for _, a := range post.Attachments() {
 		for _, act := range a.Actions {
-			out = append(out, act.Name)
+			if !isOpenAction(act) {
+				out = append(out, act.Name)
+			}
 		}
+	}
+	return out
+}
+
+// openButtons 回傳選單裡代表 tile 的按鈕，依出現順序。
+func openButtons(post *model.Post) []*model.PostAction {
+	var out []*model.PostAction
+	for _, a := range post.Attachments() {
+		for _, act := range a.Actions {
+			if isOpenAction(act) {
+				out = append(out, act)
+			}
+		}
+	}
+	return out
+}
+
+func openButtonNames(post *model.Post) []string {
+	var out []string
+	for _, act := range openButtons(post) {
+		out = append(out, act.Name)
 	}
 	return out
 }

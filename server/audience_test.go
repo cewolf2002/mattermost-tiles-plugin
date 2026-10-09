@@ -68,8 +68,8 @@ func TestAudienceIsFilteredInSlashCommand(t *testing.T) {
 		_, appErr := e.p.ExecuteCommand(nil, &model.CommandArgs{UserId: user, ChannelId: "c1", Command: "/tiles"})
 		require.Nil(t, appErr)
 	}
-	require.Len(t, tileAttachments(sent["alice"]), 1)
-	require.Len(t, tileAttachments(sent["bob"]), 2)
+	require.Equal(t, []string{"公告"}, openButtonNames(sent["alice"]))
+	require.Equal(t, []string{"公告", "業務報價"}, openButtonNames(sent["bob"]))
 }
 
 func TestAudienceValidation(t *testing.T) {

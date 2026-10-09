@@ -216,11 +216,11 @@ func TestBotDMRepliesWithMenu(t *testing.T) {
 	require.Len(t, replies, 1)
 	require.Equal(t, "bot123", replies[0].UserId)
 	require.Equal(t, dm, replies[0].ChannelId)
-	require.Equal(t, []string{"報價單"}, titlesOf(tileAttachments(replies[0])))
+	require.Equal(t, []string{"報價單"}, openButtonNames(replies[0]))
 	require.NotContains(t, buttonNames(replies[0]), "📌 加到我的最愛")
 
 	e.p.MessageHasBeenPosted(nil, &model.Post{UserId: "alice", ChannelId: dm, Message: "全部"})
-	require.Len(t, tileAttachments(replies[1]), 2, "輸入「全部」顯示完整選單")
+	require.Len(t, openButtons(replies[1]), 2, "輸入「全部」顯示完整選單")
 
 	e.p.MessageHasBeenPosted(nil, &model.Post{UserId: "alice", ChannelId: dm, Message: "沒有這個"})
 	require.Contains(t, replies[2].Message, "輸入「全部」看完整選單")
@@ -281,4 +281,42 @@ func TestPinAddsBotDMToFavorites(t *testing.T) {
 	log := captureEphemeral(e, "alice")
 	require.Contains(t, doAction(t, e, log, "alice", map[string]any{"action": "pin"}), "已經在")
 	require.Nil(t, welcome)
+}
+
+func TestOpenButtonRepliesWithLink(t *testing.T) {
+	e := setup(t, configuration{MaxPersonalTiles: 2})
+	sales := e.dir.addChannel("業務部", model.ChannelTypePrivate, "bob")
+	seeded := seedShared(t, e.p,
+		Tile{Icon: "📘", Title: "使用手冊 [新版]", Description: "安裝與設定", URL: "https://example.com/wiki/A_(b) c", Color: "#1D9E75"},
+		Tile{Title: "業務報價", URL: "https://sales.example", Channels: []string{sales}},
+	)
+	manual, quote := seeded[0], seeded[1]
+	mine := addPersonalReq(t, e, "alice", Tile{Title: "我的報表", URL: "https://mine.example"})
+	alice := captureEphemeral(e, "alice")
+	bob := captureEphemeral(e, "bob")
+
+	// 選單上的按鈕帶著 tile 的顏色與 ID
+	_, appErr := e.p.ExecuteCommand(nil, &model.CommandArgs{UserId: "alice", ChannelId: "c1", Command: "/tiles"})
+	require.Nil(t, appErr)
+	btn := openButtons(alice.sent[len(alice.sent)-1])[0]
+	require.Equal(t, "📘 使用手冊 [新版]", btn.Name)
+	require.Equal(t, "#1D9E75", btn.Style)
+	require.Equal(t, manual.ID, btn.Integration.Context["tile_id"])
+
+	// 按下後回一則附連結的暫時訊息；標題的中括號與網址的括號、空白都要跳脫，連結才不會斷掉
+	reply := doAction(t, e, alice, "alice", map[string]any{"action": "open", "scope": scopeShared, "tile_id": manual.ID})
+	require.Contains(t, reply, `#### [📘 使用手冊 \[新版\]](https://example.com/wiki/A_%28b%29%20c)`)
+	require.Contains(t, reply, "安裝與設定")
+
+	reply = doAction(t, e, alice, "alice", map[string]any{"action": "open", "scope": scopePersonal, "tile_id": mine.ID})
+	require.Contains(t, reply, "(https://mine.example)")
+
+	// 繞過顯示對象或拿別人的捷徑都拿不到連結
+	reply = doAction(t, e, alice, "alice", map[string]any{"action": "open", "scope": scopeShared, "tile_id": quote.ID})
+	require.Contains(t, reply, "找不到")
+	require.NotContains(t, reply, "sales.example")
+	reply = doAction(t, e, bob, "bob", map[string]any{"action": "open", "scope": scopeShared, "tile_id": quote.ID})
+	require.Contains(t, reply, "(https://sales.example)", "業務部成員拿得到")
+	reply = doAction(t, e, bob, "bob", map[string]any{"action": "open", "scope": scopePersonal, "tile_id": mine.ID})
+	require.Contains(t, reply, "找不到")
 }

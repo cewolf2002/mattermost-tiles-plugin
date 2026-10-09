@@ -25,10 +25,11 @@ func TestCommandSendsEphemeralTiles(t *testing.T) {
 	require.NotNil(t, sent)
 	require.Equal(t, "bot123", sent.UserId)
 	require.Equal(t, "c1", sent.ChannelId)
-	atts := tileAttachments(sent)
-	require.Len(t, atts, 1)
-	require.Equal(t, "常見問題", atts[0].Title)
-	require.Equal(t, "https://b.example", atts[0].TitleLink)
+	// 每個 tile 是一顆按鈕，顏色沿用 tile 的強調色
+	require.Equal(t, []string{"常見問題"}, openButtonNames(sent))
+	btn := openButtons(sent)[0]
+	require.Equal(t, "default", btn.Style, "沒設顏色就用預設樣式")
+	require.Equal(t, scopeShared, btn.Integration.Context["scope"])
 	e.api.AssertExpectations(t)
 }
 
@@ -44,5 +45,5 @@ func TestCommandWithoutTilesExplainsWhy(t *testing.T) {
 	require.Nil(t, appErr)
 	require.Contains(t, sent.Message, defaultIntro)
 	require.Contains(t, sent.Message, "目前還沒有任何項目")
-	require.Empty(t, tileAttachments(sent))
+	require.Empty(t, openButtons(sent))
 }

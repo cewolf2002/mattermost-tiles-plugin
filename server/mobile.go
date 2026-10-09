@@ -19,6 +19,10 @@ const (
 	dialogPath = "/plugins/" + pluginID + "/api/v1/dialog"
 
 	defaultColorValue = "default" // 對話框的選項值不能是空字串，用這個代表「預設顏色」
+
+	// 選單按鈕的 context 裡標明 tile 屬於哪一份清單
+	scopeShared   = "shared"
+	scopePersonal = "personal"
 )
 
 // 在私訊裡輸入這些字就顯示完整選單，不當成關鍵字篩選
@@ -46,6 +50,54 @@ func newAction(name, action, style string, extra map[string]any) *model.PostActi
 		Style:       style,
 		Integration: &model.PostActionIntegration{URL: actionPath, Context: ctx},
 	}
+}
+
+// tileButtons 把每個 tile 做成一顆按鈕（顏色沿用 tile 的強調色）。
+// Mattermost 的訊息按鈕只能回呼外掛、不能直接開網址，所以按下後由 handleAction 回一則附連結的暫時訊息，再點一次開啟。
+func tileButtons(tiles []Tile, scope string) *model.SlackAttachment {
+	if len(tiles) == 0 {
+		return nil
+	}
+	actions := make([]*model.PostAction, 0, len(tiles))
+	for _, t := range tiles {
+		style := t.Color
+		if style == "" {
+			style = "default"
+		}
+		actions = append(actions, newAction(tileHeading(t), "open", style, map[string]any{"tile_id": t.ID, "scope": scope}))
+	}
+	return &model.SlackAttachment{Actions: actions}
+}
+
+// findVisibleTile 找出按鈕對應的 tile；共用項目要再確認使用者看得到，避免繞過顯示對象拿到連結。
+func (p *Plugin) findVisibleTile(userID, scope, id string) (Tile, bool) {
+	var tiles []Tile
+	var err error
+	if scope == scopePersonal {
+		tiles, _, err = p.loadPersonal(userID)
+	} else {
+		tiles, err = p.loadTiles(sharedKey)
+		tiles = p.visibleTiles(userID, tiles)
+	}
+	if err != nil {
+		return Tile{}, false
+	}
+	return findTile(tiles, id)
+}
+
+var (
+	linkTextEscaper = strings.NewReplacer(`\`, `\\`, `[`, `\[`, `]`, `\]`)
+	// 網址裡的空白與括號會讓 Markdown 連結提早結束，換成等價的百分比編碼
+	linkURLEscaper = strings.NewReplacer(" ", "%20", "(", "%28", ")", "%29")
+)
+
+// openLinkText 是按下 tile 按鈕後的回覆：連結用標題大小，手機上比較好點。
+func openLinkText(t Tile) string {
+	text := "#### [" + linkTextEscaper.Replace(tileHeading(t)) + "](" + linkURLEscaper.Replace(t.URL) + ")"
+	if t.Description != "" {
+		text += "\n" + t.Description
+	}
+	return text + "\n點上面的連結開啟。"
 }
 
 // menuActions 是選單底下的按鈕列；在私訊裡已經是固定入口，就不再顯示「加到我的最愛」。
@@ -154,10 +206,18 @@ func (p *Plugin) handleAction(w http.ResponseWriter, r *http.Request) {
 	}
 	action, _ := req.Context["action"].(string)
 	tileID, _ := req.Context["tile_id"].(string)
+	scope, _ := req.Context["scope"].(string)
 	_, _, botID := p.snapshot()
 	reply := ""
 
 	switch action {
+	case "open":
+		if t, ok := p.findVisibleTile(userID, scope, tileID); ok {
+			reply = openLinkText(t)
+		} else {
+			reply = errTileNotFound.Error()
+		}
+
 	case "add":
 		personal, limit, err := p.loadPersonal(userID)
 		switch {
@@ -353,7 +413,7 @@ func (p *Plugin) pinForUser(userID string) (bool, error) {
 	// 先送一則歡迎選單：私訊裡有訊息，Mattermost 才會把它顯示在側邊欄
 	welcome := p.buildMenu(userID, "", cfg, trigger, true)
 	welcome.Message = "這裡是快速查詢的固定入口，已幫你加到「我的最愛」。\n" +
-		"直接輸入關鍵字（例如「報價」）就會列出符合的連結；輸入「全部」看完整選單。\n\n" + welcome.Message
+		"直接輸入關鍵字（例如「報價」）就會列出符合的項目；輸入「全部」看完整選單。按下項目會跳出連結，再點一下開啟。\n\n" + welcome.Message
 	welcome.UserId = botID
 	welcome.ChannelId = dm.Id
 	if _, appErr := p.API.CreatePost(welcome); appErr != nil {
